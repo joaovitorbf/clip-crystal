@@ -1,0 +1,13 @@
+name: clip-crystal
+version: 0.1.0
+
+authors:
+  - João Fonsaka <joaofonsaka@outlook.com>
+
+targets:
+  clip-crystal:
+    main: src/clip-crystal.cr
+
+crystal: '>= 1.17.1'
+
+license: MIT
