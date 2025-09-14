@@ -10,6 +10,21 @@
             padding-top: 100px;
             text-align: center;
         }
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        button {
+            font-family: 'Courier New', Courier, monospace;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
         h1 {
             color: #333;
         }
@@ -30,7 +45,70 @@
 </head>
 <body>
     <h1>CLIP</h1>
-    <input type="text" name="channel" id="channel" placeholder="Channel"/>
-    <textarea name="content" id="content"></textarea>
+    <form action="/update" method="post">
+        <input type="text" name="channel" id="channel" placeholder="Channel"/>
+        <textarea name="content" id="content"></textarea>
+        <button type="submit">Update</button>
+    </form>
+
+    <script>
+    const button = document.querySelector("button");
+    if (button) button.remove();
+
+    function debounce(fn, delay) {
+        let timer = null;
+        return function(...args) {
+            clearTimeout(timer);
+            timer = setTimeout(() => fn.apply(this, args), delay);
+        };
+    }
+
+    let lastClientUpdate = 0;
+    let userTyping = false;
+
+    function sendUpdate() {
+        const channel = document.getElementById("channel").value;
+        const content = document.getElementById("content").value;
+        fetch("/update", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ channel, content })
+        });
+        lastClientUpdate = Date.now();
+    }
+
+    function fetchChannelContents() {
+        const channel = document.getElementById("channel").value;
+        if (!channel) return;
+        fetch(`/fetch?channel=${encodeURIComponent(channel)}`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("content").value = data.content || "";
+            });
+    }
+
+    const debouncedUpdate = debounce(() => {
+        sendUpdate();
+        userTyping = false;
+    }, 500);
+    const debouncedFetch = debounce(fetchChannelContents, 500);
+
+    document.getElementById("content").addEventListener("input", () => {
+        userTyping = true;
+        debouncedUpdate();
+    });
+    document.getElementById("channel").addEventListener("input", () => {
+        document.getElementById("content").value = "";
+        debouncedFetch();
+    });
+
+    setInterval(() => {
+        if (!userTyping && Date.now() - lastClientUpdate > 1000) {
+            fetchChannelContents();
+        }
+    }, 1000);
+    </script>
 </body>
 </html>
