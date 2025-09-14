@@ -23,7 +23,6 @@ server = HTTP::Server.new do |context|
     if request_body
       begin
         data = JSON.parse(request_body)
-        p! data
         channel = data["channel"]?.try &.as_s?
         content = data["content"]?.try &.as_s?
       rescue
@@ -36,9 +35,15 @@ server = HTTP::Server.new do |context|
     end
 
     if channel && content
-      channels[channel] = content
-      channel_timestamps[channel] = Time.utc
-      respond(context, 200, "text/plain", "Update successful")
+      if content.size > 10_000
+        respond(context, 413, "text/plain", "Content too long (max 10,000 characters)")
+      elsif channels.size < 50 || channels.has_key?(channel)
+        channels[channel] = content
+        channel_timestamps[channel] = Time.utc
+        respond(context, 200, "text/plain", "Update successful")
+      else
+        respond(context, 403, "text/plain", "Channel limit reached (50)")
+      end
     else
       respond(context, 400, "text/plain", "Invalid request")
     end
