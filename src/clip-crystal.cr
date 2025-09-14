@@ -1,11 +1,15 @@
 require "http/server"
 require "json"
+require "./channel_cleaner"
 
 front_html_file = File.new("frontend.html")
 front_html = front_html_file.gets_to_end
 front_html_file.close
 
 channels = Hash(String, String).new
+channel_timestamps = Hash(String, Time).new
+
+start_channel_cleaner(channels, channel_timestamps)
 
 server = HTTP::Server.new do |context|
   path = context.request.path
@@ -35,6 +39,7 @@ server = HTTP::Server.new do |context|
 
     if channel && content
       channels[channel] = content
+      channel_timestamps[channel] = Time.utc
       context.response.status_code = 200
       context.response.content_type = "text/plain"
       context.response.print "Update successful"
